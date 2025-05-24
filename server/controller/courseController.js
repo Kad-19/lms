@@ -2,20 +2,14 @@ import Course from "../models/courseModel.js";
 import createError from "../utils/error.js";
 import { v2 } from "cloudinary";
 import fs from "fs/promises";
-import { myCache } from "../app.js";
 import Restriction from "../models/restrictionModel.js";
 
+// Remove all cache usage from getAllCourses
 export const getAllCourses = async (req, res, next) => {
   try {
-    let courses;
-    if (myCache.has("courses")) {
-      courses = JSON.parse(myCache.get("courses"));
-    } else {
-      courses = await Course.find({}).select("-lectures");
-      if (!courses) {
-        return next(createError(404, "No courses found"));
-      }
-      myCache.set("courses", JSON.stringify(courses));
+    const courses = await Course.find({}).select("-lectures");
+    if (!courses) {
+      return next(createError(404, "No courses found"));
     }
     res.status(200).json({
       success: true,
@@ -75,7 +69,6 @@ export const createCourse = async (req, res, next) => {
       }
     }
     await newCourse.save();
-    myCache.del("courses");
     res.status(201).json({
       success: true,
       message: "course created successfully",
@@ -121,7 +114,6 @@ export const updateCourse = async (req, res, next) => {
       return next(createError(404, "No courses found"));
     }
     await course.save();
-    myCache.del("courses");
     res.status(200).json({
       success: true,
       message: "course updated successfully",
@@ -142,7 +134,6 @@ export const deleteCourse = async (req, res, next) => {
     await v2.uploader.destroy(course.thumbnail.public_id, {
       resource_type: "image",
     });
-    myCache.del("courses");
     res.status(200).json({
       success: true,
       message: "Course deleted successfully",
@@ -155,18 +146,11 @@ export const deleteCourse = async (req, res, next) => {
 export const getLectures = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let lectures;
-    const cacheKey = `lectures_${id}`;
-    if (myCache.has(cacheKey)) {
-      lectures = JSON.parse(myCache.get(cacheKey));
-    } else {
-      const course = await Course.findById(id);
-      if (!course) {
-        return next(createError(404, "No courses found"));
-      }
-      lectures = course.lectures;
-      myCache.set(cacheKey, JSON.stringify(lectures));
+    const course = await Course.findById(id);
+    if (!course) {
+      return next(createError(404, "No courses found"));
     }
+    const lectures = course.lectures;
     return res.status(200).json({
       success: true,
       message: "Lectures fetched successfully",
@@ -216,7 +200,6 @@ export const addLecturesToCourse = async (req, res, next) => {
     course.lectures.push(lectureData);
     course.numberOfLectures = course.lectures.length;
     await course.save();
-    myCache.del(`lectures_${course._id}`);
     res.status(200).json({
       success: true,
       message: "lectures add successfully",
@@ -269,7 +252,6 @@ export const updateLectures = async (req, res, next) => {
       }
     }
     await course.save();
-    myCache.del(`lectures_${course._id}`);
     res.status(200).json({
       success: true,
       message: "Lecture updated successfully",
@@ -303,7 +285,6 @@ export const deleteLectures = async (req, res, next) => {
     course.numberOfLectures = course.lectures.length;
 
     await course.save();
-    myCache.del(`lectures_${course._id}`);
     res.status(200).json({
       success: true,
       message: "Lecture deleted successfully",
@@ -381,12 +362,9 @@ export const getAllCoursesForChild = async (req, res, next) => {
     }
 
     // Get restriction for child
-    console.log("get restriction for child");
-    console.log(child_email);
     const restriction = await Restriction.findOne({ child_email });
 
     // Get all courses
-    console.log("get all courses");
     const courses = await Course.find({}).select("-lectures");
 
     let filteredCourses = courses;
@@ -402,7 +380,6 @@ export const getAllCoursesForChild = async (req, res, next) => {
       courses: filteredCourses,
     });
   } catch (error) {
-    console.log("error in getAllCoursesForChild", error);
     return next(createError(500, error.message));
   }
 };
