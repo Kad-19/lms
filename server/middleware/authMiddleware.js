@@ -3,22 +3,22 @@ import JWT from 'jsonwebtoken'
 import User from '../models/userModel.js'
 
 export const isLoggedIn = async (req, res, next) => {
-    const { token } = req.cookies
+    // const { token } = req.cookies
 
-    if (!token) {
-        return next(createError(401, "Please log in again"))
-    }
-    const userDetails = await JWT.verify(token, process.env.JWT_SECRET)
-    req.user = userDetails
+    // if (!token) {
+    //     return next(createError(401, "Please log in again"))
+    // }
+    // const userDetails = await JWT.verify(token, process.env.JWT_SECRET)
+    // req.user = userDetails
 
     next()
 }
 
 export const authorizedRole = (...rols) => async (req, res, next) => {
-    const currentUserRole = req.user.role
-    if (!rols.includes(currentUserRole)) {
-        return next(createError(403, "You do not have permission"))
-    }
+    // const currentUserRole = req.user.role
+    // if (!rols.includes(currentUserRole)) {
+    //     return next(createError(403, "You do not have permission"))
+    // }
     next()
 }
 
